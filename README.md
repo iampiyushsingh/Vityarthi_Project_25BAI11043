@@ -1,5 +1,5 @@
 # AIML Vityarthi BYOP — 25BAI11043
-#  Music Mood Recommendation System
+# Music Mood Recommendation System
 
 ![Python](https://img.shields.io/badge/Python-3.7%2B-blue?logo=python)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-RandomForest-orange?logo=scikit-learn)
@@ -9,21 +9,21 @@
 
 ## Overview
 
-This project builds a **mood-based music recommendation engine** using supervised machine learning. It takes raw Spotify track data, assigns mood labels based on audio features, trains a Random Forest classifier, and recommends songs that match a chosen mood.
+I built this project to recommend songs based on how you're feeling, not what you've previously listened to. It works by pulling audio features from a Spotify dataset, figuring out the mood of each track, and then matching songs to whatever mood you pick.
 
--  Mood labels: **Happy**, **Sad**, **Angry**, **Calm**
--  Classifier: **Random Forest** (9 audio features)
--  Training data: **113,549 songs**
--  Test Accuracy: **99.1%**
+- Mood labels: **Happy**, **Sad**, **Angry**, **Calm**
+- Classifier: **Random Forest** (9 audio features)
+- Training data: **113,549 songs**
+- Test Accuracy: **99.1%**
 
 ## Key Features
 
-- Dataset ingestion, cleaning, and mood-label generation
+- Loads and cleans the raw Spotify data, then automatically assigns mood labels
 - Random Forest classifier trained on Spotify audio features
 - Mood-based song recommendations via CLI or Python API
-- Centralized configuration via `config.py`
-- Shared utilities for logging and model I/O via `utils.py`
-- Full test coverage with `pytest`
+- All paths and settings live in one config.py so nothing is hardcoded
+- Logging and model save/load are handled in utils.py so I'm not repeating code everywhere
+- Every core module has pytest tests written for it
 
 ## Table of Contents
 
@@ -73,7 +73,7 @@ aiml-project/
 ├── README.md
 ├── config.py                           # Adjustable settings
 ├── main.py  
-├── Project_report.pdf                           # CLI entrypoint
+├── Project_report.pdf                  # CLI entrypoint
 ├── pytest.ini
 ├── requirements.txt
 └── utils.py                            # Helper functions
@@ -86,7 +86,7 @@ aiml-project/
    git clone https://github.com/iampiyushsingh/Vityarthi_Project_25BAI11043.git
    cd "Vityarthi_Project_25BAI11043"
    ```
-2. Create and activate virtual environment:
+2. Set up a virtual environment:
    ```bash
    python -m venv .venv
    .venv\Scripts\activate      # Windows
@@ -117,7 +117,7 @@ aiml-project/
 - Input dataset path: `data/raw/dataset/tracks.csv`
 - Output processed dataset: `data/processed/music_with_mood.csv`
 
-`src/data_preprocessing.py` handles feature selection, mood-label creation, and saving cleaned data.
+`src/data_preprocessing.py` takes care of picking the right columns, creating the mood labels and saving the cleaned output.
 
 ## Training
 
@@ -143,20 +143,20 @@ This pipeline:
 ## How It Works
 
 ### Data Preprocessing
-- Loads raw track data from CSV
-- Cleans missing values and duplicates
-- Derives mood labels from audio features
-- Saves processed data for training
+- Reads the raw CSV
+- Drops rows with missing values and removes duplicate tracks
+- Uses valence, energy and other features to assign a mood to each track
+- Saves the cleaned file so training doesn't redo this every run
 
 ### Model Training
 - Uses Random Forest classifier
 - Features: valence, energy, danceability, etc.
-- Encodes mood labels (Happy, Sad, Angry, Calm)
-- Trains on 80% data, validates on 20%
+- Converts mood names to numbers so the model can work with them
+- 80% goes to training, 20% held back for testing
 
 ### Recommendation
 - Predicts mood for new tracks
-- Filters and ranks recommendations by predicted mood
+- Filters the dataset to tracks matching your mood and returns the top results
 
 ### Audio Features Used
 
@@ -172,14 +172,14 @@ This pipeline:
 | `speechiness` | Presence of spoken words |
 | `liveness` | Presence of live audience |
 
-Mood assignment is computed from aggregated sentiment score heuristics and refined with a RandomForest classifier. This gives robust mood predictions using real track features.
+I set mood labels using simple threshold rules — high valence + high energy = Happy, low both = Sad, etc. The classifier picks up on these patterns once trained.
 
 ## Model Files
 
 | File | Purpose |
 |------|---------|
-| `models/mood_model.pkl` | Trained RandomForest model for mood prediction |
-| `models/label_encoder.pkl` | Encodes mood labels (Happy, Sad, Angry, Calm) to numeric values |
+| `models/mood_model.pkl` | The trained model, saved after running main.py train |
+| `models/label_encoder.pkl` | Converts between mood names and the numbers the model uses internally |
 
 ## Workflow
 
@@ -195,9 +195,9 @@ Recommendation (main.py recommend) → Mood-based Song Recommendations
 
 ### Step-by-Step Guide
 
-1. **Prepare Data**: Ensure `data/raw/dataset/tracks.csv` exists with required columns.
-2. **Train Model**: Run `python main.py train` to train and save the model.
-3. **Get Recommendations**: Use `python main.py recommend --mood Happy` for CLI or programmatic API.
+1. **Prepare Data**: Make sure `data/raw/dataset/tracks.csv` is in place with all the needed columns.
+2. **Train Model**: Run `python main.py train` — this trains and saves the model.
+3. **Get Recommendations**: Run `python main.py recommend --mood Happy` from CLI or call it directly in Python.
 
 ### CLI: Recommendation
 
@@ -228,7 +228,7 @@ run_recommendation(mood="Happy", top_k=10)
 - **Training Data**: 113,549 songs
 - **Features**: 9 audio features
 
->  A train accuracy of 100% may indicate overfitting. Consider tuning `max_depth` or `min_samples_split` in `config.py` to improve generalization.
+> 100% train accuracy probably means it memorised the training data. Test accuracy is still 99.1% so it's not terrible, but I want to try capping `max_depth` or increasing `min_samples_split` in `config.py` to close that gap.
 
 ## Model and Mood Logic
 
@@ -243,7 +243,7 @@ Mood classification uses the following features (from Spotify API style input):
 - speechiness
 - liveness
 
-Mood assignment is computed from aggregated sentiment score heuristics and refined with a RandomForest classifier. This gives robust mood predictions using real track features.
+I set mood labels using simple threshold rules — high valence + high energy = Happy, low both = Sad, etc. The classifier picks up on these patterns once trained.
 
 ## Evaluation
 
@@ -285,18 +285,18 @@ Metrics tracked:
 
 ## Notes
 
-- The model requires training before recommendations
-- Mood categories are fixed: Happy, Sad, Angry, Calm
-- All model files are saved for quick predictions without retraining
-- Model files are excluded from Git due to size — regenerate with `python main.py train`
+- Run training first or recommendations won't work
+- Moods are fixed to these four: Happy, Sad, Angry, Calm
+- After training once the .pkl files stick around, no need to retrain every session
+- I put model/*.pkl in .gitignore — they're too big for GitHub, just run `python main.py train` to get them back
 
 ## Key Functions
 
-- `preprocess()`: Loads and cleans raw track data, assigns mood labels
-- `train_pipeline()`: Trains and saves the Random Forest model
-- `run_recommendation()`: Returns mood-based song recommendations
-- `get_logger()`: Sets up console and file logging
-- `save_model()` / `load_model()`: Handles model persistence
+- `preprocess()`: reads the raw CSV, drops bad rows and stamps a mood on each track
+- `train_pipeline()`: runs the full training pipeline and saves the model to disk
+- `run_recommendation()`: takes a mood input and gives back matching songs
+- `get_logger()`: sets up logging so you can see what's happening and check logs later
+- `save_model()` / `load_model()`: saves and loads the .pkl files
 
 ## License
 
